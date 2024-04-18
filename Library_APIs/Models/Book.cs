@@ -12,6 +12,8 @@ namespace Library_APIs.Models
         [ForeignKey(nameof(Category))]
         public Guid CategoryId { get; set; }
         public string Image { get; set; }
+        public BookState BookState { get; set; }
+        public ApplicationUser User { get; set; }
 
     }
 }
