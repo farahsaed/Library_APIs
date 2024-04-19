@@ -11,10 +11,7 @@ namespace Library_APIs.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "State",
-                table: "Books");
-
+          
             migrationBuilder.CreateTable(
                 name: "Requests",
                 columns: table => new

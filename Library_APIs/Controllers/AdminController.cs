@@ -85,6 +85,7 @@ namespace Library_APIs.Controllers
             }
             return BadRequest(ModelState);
         }
+
         [HttpDelete("DeleteUser/{id:Guid}")]
         public async Task<IActionResult> DeleteUser(string id)
         {
@@ -143,10 +144,15 @@ namespace Library_APIs.Controllers
             }
             return NotFound("Book is not found");
         }
+
         [HttpGet("GetRejectedReasons")]
         public  IActionResult GetRejectedReasons()
         {
-            var reasons = Enum.GetValues(typeof(RejectReasons)).Cast<RejectReasons>().Select(e => new {Name = e.ToString() , Value = (int)e }).ToList();
+            var reasons = Enum.GetValues(typeof(RejectReasons))
+                              .Cast<RejectReasons>()
+                              .Select(e => new {Name = e.ToString() , Value = (int)e })
+                              .ToList();
+
             if(reasons != null)
             {
                 return Ok(reasons);

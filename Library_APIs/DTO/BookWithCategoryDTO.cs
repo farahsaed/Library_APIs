@@ -7,7 +7,8 @@ namespace Library_APIs.DTO
     {
         public string Title { get; set; }
         public string Description { get; set; }
-        public Category Category { get; set; }
+        public string CategoryName { get; set; }
+        public Guid CategoryId { get; set; }
         public IFormFile Image { get; set; }
     }
 }

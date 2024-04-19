@@ -4,6 +4,7 @@ using Library_APIs.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Runtime.InteropServices;
 
 namespace Library_APIs.Controllers
@@ -22,14 +23,50 @@ namespace Library_APIs.Controllers
         }
 
         [HttpGet("GetAllBooks")]
-        public IActionResult GetAllRecipes()
+        public async Task<IActionResult> GetAllBooks(int page,int limit)
         {
-            var books = db.Books.ToList();
-            if (books.Any())
+            var books = db.Books;
+
+            var totalCount = await db.Books.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalCount / (double)limit);
+            var pagedBooks = await books.Skip((page -1) * limit) .Take
+                (limit).ToListAsync();
+
+            var pagedBookData = new PagedBookResult
             {
-                return Ok(books);
+                books = pagedBooks,
+                TotalCount = totalCount,
+                TotalPages = totalPages
+            };
+
+            if (pagedBookData.TotalCount < 1)
+            {
+                return NotFound("There are no books found");
+
             }
-            return NotFound("There are no books found");
+            return Ok(pagedBookData);
+
+
+        }
+
+        [HttpGet("SearchBook")]
+        public IActionResult GetSearchedBook(string term) 
+        {
+            IQueryable<Book> books;
+            if (string.IsNullOrWhiteSpace(term))
+                books = db.Books;
+            else
+            {
+                term = term.Trim().ToLower();
+                books = db.Books
+                        .Where(b => b.Title.ToLower().Contains(term)
+                        );
+            }
+            if (books.Any())
+                return Ok(books);
+
+            else
+                return NotFound("No books matches the search term");
 
         }
 
@@ -44,7 +81,7 @@ namespace Library_APIs.Controllers
                     book.Id = Guid.NewGuid();
                     book.Title = bookDTO.Title;
                     book.Description = bookDTO.Description;
-                    book.Category = bookDTO.Category;
+                    book.CategoryId = bookDTO.CategoryId;
 
                     string wwwRootPath = _environment.WebRootPath;
 
@@ -98,14 +135,14 @@ namespace Library_APIs.Controllers
         [HttpPost("UpdateBook/{id}")]
         public IActionResult UpdateBook(Guid id, BookWithCategoryDTO bookDTO)
         {
-            var book = db.Books.Find(id);
+            var book = db.Books.Include(b=>b.Category).FirstOrDefault(b=>b.Id == id);
 
             if (book == null)
             { return NotFound("Book not found"); }
 
             book.Title = bookDTO.Title;
             book.Description = bookDTO.Description;
-            book.Category = bookDTO.Category;
+            book.CategoryId = bookDTO.CategoryId;
 
             string wwwRootPath = _environment.WebRootPath;
 
