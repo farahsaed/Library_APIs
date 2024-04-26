@@ -3,8 +3,10 @@ using Library_APIs.DTO;
 using Library_APIs.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using System.Runtime.InteropServices;
 
 namespace Library_APIs.Controllers
@@ -15,11 +17,13 @@ namespace Library_APIs.Controllers
     {
         private readonly LibraryContext db;
         private readonly IWebHostEnvironment _environment;
+        private readonly Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> userManager;
 
-        public BooksController(LibraryContext _db, IWebHostEnvironment environment)
+        public BooksController(LibraryContext _db, IWebHostEnvironment environment, UserManager<ApplicationUser> userManager)
         {
             db = _db;
             this._environment = environment;
+            this.userManager = userManager;
         }
 
         [HttpGet("GetAllBooks")]
@@ -188,6 +192,30 @@ namespace Library_APIs.Controllers
             db.Books.Remove(book);
             db.SaveChanges();
             return Ok("Deleted successfully");
+        }
+
+        [HttpPost("SendRequest/{id}")]
+        public async Task<IActionResult> SendRequest(Guid id)
+        {
+            var userId = userManager.GetUserId(HttpContext.User);
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+                return NotFound("User not found");
+
+            var book = db.Books.Find(id);
+
+            if (book == null)
+                return NotFound("Book not found");
+
+            var request = new Request();
+            book.BookState = BookState.Pending;
+            request.Id = Guid.NewGuid();
+            request.UserId = userId;
+            request.BookeState = BookState.Pending;
+            request.BookId = id;
+            db.Add(request);
+            db.SaveChanges();
+            return Ok();
         }
     }
 }
