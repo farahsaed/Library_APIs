@@ -91,7 +91,7 @@ namespace Library_APIs.Controllers
 
         }
 
-        [HttpGet("GetSerchHistory")]
+        [HttpGet("SearchHistory")]
         public IActionResult GetSearchHistory()
         {
             List<string> bookList = new List<string>();
