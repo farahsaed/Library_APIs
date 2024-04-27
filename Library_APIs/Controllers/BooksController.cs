@@ -22,6 +22,7 @@ namespace Library_APIs.Controllers
         private readonly IWebHostEnvironment _environment;
         private readonly Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> userManager;
         private readonly IHttpContextAccessor httpContext;
+        private static List<string> bookList = new List<string>();
 
         public BooksController(LibraryContext _db, 
                                 IWebHostEnvironment environment, 
@@ -65,7 +66,7 @@ namespace Library_APIs.Controllers
         public IActionResult GetSearchedBook(string term) 
         {
             IQueryable<Book> books;
-            var bookList = new List<string>();
+            //var bookList = new List<string>();
             var termSession="";
             var result = "";
             if (string.IsNullOrWhiteSpace(term))
