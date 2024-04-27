@@ -27,10 +27,27 @@ namespace Library_APIs.Controllers
         {
             var cats = await db.Categories.ToListAsync();
 
-            if(cats == null)
-                return NotFound("No Categories found");
+            var decryptedCats = new List<Category>();
 
-            return Ok(cats);
+            foreach (var cat in cats)
+            {
+                var decryptedCat = new Category
+                {
+                    Id = cat.Id,
+                    Name = Encryption.Decrypt(cat.EncName),
+                    Description = Encryption.Decrypt(cat.EncDescription)
+                };
+
+                decryptedCats.Add(decryptedCat);
+            }
+
+            return Ok(decryptedCats);
+            //var cats = await db.Categories.ToListAsync();
+
+            //if(cats == null)
+            //    return NotFound("No Categories found");
+
+            //return Ok(cats);
         }
 
         [HttpPost("CreateCategory")]
@@ -45,6 +62,9 @@ namespace Library_APIs.Controllers
                     cat.Id = Guid.NewGuid();
                     cat.Name = CatDTO.Name;
                     cat.Description = CatDTO.Description;
+
+                    cat.EncName = Encryption.Encrypt(cat.Name);
+                    cat.EncDescription = Encryption.Encrypt(cat.Description);
 
                     db.Categories.Add(cat);
                     db.SaveChanges();
