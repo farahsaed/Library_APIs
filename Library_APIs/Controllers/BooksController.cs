@@ -33,7 +33,7 @@ namespace Library_APIs.Controllers
 
             var totalCount = await db.Books.CountAsync();
             var totalPages = (int)Math.Ceiling(totalCount / (double)limit);
-            var pagedBooks = await books.Skip((page -1) * limit) .Take
+            var pagedBooks = await books.Include(b => b.Category).Skip((page -1) * limit) .Take
                 (limit).ToListAsync();
 
             var pagedBookData = new PagedBookResult
