@@ -1,6 +1,7 @@
 ﻿using Library_APIs.Data;
 using Library_APIs.DTO;
 using Library_APIs.Models;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -88,6 +89,13 @@ namespace Library_APIs.Controllers
             }
             return Unauthorized("Unauthorized");
         }
+
+        [HttpPost("SignOut")]
+        public async Task<IActionResult> SignOut()
+        {
+            await HttpContext.SignOutAsync();
+            return Ok();
+        } 
             
     }
 }

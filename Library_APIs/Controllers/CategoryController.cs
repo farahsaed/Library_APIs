@@ -1,6 +1,7 @@
 ﻿using Library_APIs.Data;
 using Library_APIs.DTO;
 using Library_APIs.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,13 +27,31 @@ namespace Library_APIs.Controllers
         {
             var cats = await db.Categories.ToListAsync();
 
-            if(cats == null)
-                return NotFound("No Categories found");
+            var decryptedCats = new List<Category>();
 
-            return Ok(cats);
+            foreach (var cat in cats)
+            {
+                var decryptedCat = new Category
+                {
+                    Id = cat.Id,
+                    Name = Encryption.Decrypt(cat.EncName),
+                    Description = Encryption.Decrypt(cat.EncDescription)
+                };
+
+                decryptedCats.Add(decryptedCat);
+            }
+
+            return Ok(decryptedCats);
+            //var cats = await db.Categories.ToListAsync();
+
+            //if(cats == null)
+            //    return NotFound("No Categories found");
+
+            //return Ok(cats);
         }
 
         [HttpPost("CreateCategory")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateCatgeory(CategoryWithBooksDTO CatDTO)
         {
             var cat = new Category();
@@ -43,6 +62,9 @@ namespace Library_APIs.Controllers
                     cat.Id = Guid.NewGuid();
                     cat.Name = CatDTO.Name;
                     cat.Description = CatDTO.Description;
+
+                    cat.EncName = Encryption.Encrypt(cat.Name);
+                    cat.EncDescription = Encryption.Encrypt(cat.Description);
 
                     db.Categories.Add(cat);
                     db.SaveChanges();
@@ -64,6 +86,7 @@ namespace Library_APIs.Controllers
         }
 
         [HttpPost("UpdateCategory/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateCatgeory(Guid id, CategoryWithBooksDTO catDTO)
         {
             var cat = await db.Categories.FindAsync(id);
@@ -83,6 +106,7 @@ namespace Library_APIs.Controllers
         }
 
         [HttpDelete("DeleteCategory/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteCatgeory(Guid id)
         {
             var cat = await db.Categories.FindAsync(id);

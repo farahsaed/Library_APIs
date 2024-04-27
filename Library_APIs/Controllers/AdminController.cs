@@ -6,12 +6,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Metadata;
 
 namespace Library_APIs.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-   // [Authorize]
+    //[Authorize(Roles = "Admin")]
     public class AdminController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -22,17 +23,50 @@ namespace Library_APIs.Controllers
             this._context = context;
         }
         [HttpGet("GetAllUsers")]
-        public async Task<IActionResult> GetAllUsers()
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllUsers(int page , int limit)
         {
-            var users = await _userManager.Users.ToListAsync();
-            if(users.Any())
+            var TotalCount = await _userManager.Users.CountAsync();
+            var totalPages = (int)Math.Ceiling(TotalCount / (double)limit);
+            var PagedUsers = await _userManager.Users
+                .Skip((page - 1)*limit)
+                .Take(limit)
+                .ToListAsync();
+            var PagedUserResults = new PagedUserResult
             {
-                return Ok(users);
+                TotalCount = TotalCount,
+                TotalPages = totalPages,
+                PageNumber = page,
+                Users = PagedUsers
+            };
+            if(PagedUserResults.TotalCount > 0)
+            {
+                return Ok(PagedUserResults);
             }
             return NotFound("No users has been found");
         }
 
+        [HttpGet("SearchUsers")]
+
+        public async Task<IActionResult> GetSearchedUsers(string? term)
+        {
+            IQueryable<ApplicationUser> users;
+            if (string.IsNullOrWhiteSpace(term))
+                users =  _userManager.Users;
+            else
+            {
+                term = term.Trim().ToLower();
+                users = _userManager.Users.Where(u => u.UserName.ToLower().Contains(term));
+            }
+
+            if (users.Any())
+                return Ok(users);
+            else
+                return NotFound("No users has been found");
+        } 
+
         [HttpPost("CreateUser")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateUser(UserDataDTO userDTO)
         {
             if (ModelState.IsValid)
@@ -54,6 +88,7 @@ namespace Library_APIs.Controllers
         }
 
         [HttpGet("GetUser/{id:Guid}")]
+
         public async Task<IActionResult> GetUser(string id)
         {
             var user =  _userManager.Users.FirstOrDefault(u=>u.Id == id);
@@ -65,6 +100,7 @@ namespace Library_APIs.Controllers
         }
 
         [HttpPut("UpdateUser/{id:Guid}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateUser(UserDataDTO userDTO, string id)
         {
             var user = await _userManager.Users.FirstOrDefaultAsync(user => user.Id == id);
@@ -87,6 +123,7 @@ namespace Library_APIs.Controllers
         }
 
         [HttpDelete("DeleteUser/{id:Guid}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteUser(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -102,6 +139,7 @@ namespace Library_APIs.Controllers
             return NotFound();
         }
         [HttpGet("GetPendingBooks")]
+        
         public async Task<IActionResult> GetPendingBooks()
         {
             List<Book> books = await _context.Books.Where(b=>b.BookState == BookState.Pending).ToListAsync();
@@ -113,6 +151,7 @@ namespace Library_APIs.Controllers
         }
 
         [HttpPut("ApproveRequest/{id:Guid}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ApproveRequest(Guid id)
         {
             Book? book = await _context.Books.FindAsync(id);
@@ -121,7 +160,7 @@ namespace Library_APIs.Controllers
                 if(book.BookState == BookState.Pending)
                 {
                     book.BookState = BookState.Approved;
-                    _context.Update(book.BookState);
+                    _context.Update(book);
                     _context.SaveChanges();
                 }
             }
@@ -129,6 +168,7 @@ namespace Library_APIs.Controllers
         }
 
         [HttpDelete("RejectRequest/{id:Guid}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> RejectRequest(Guid id)
         {
             Book? book = await _context.Books.FindAsync(id);
@@ -137,7 +177,7 @@ namespace Library_APIs.Controllers
                 if(book.BookState == BookState.Pending)
                 {
                     book.BookState = BookState.Rejected;
-                    _context.Update(book.BookState);
+                    _context.Update(book);
                     _context.SaveChanges();
                 }
 

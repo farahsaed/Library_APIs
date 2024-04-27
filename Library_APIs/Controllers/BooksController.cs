@@ -4,9 +4,10 @@ using Library_APIs.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
+//using Microsoft.AspNetCore.Identity;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
@@ -40,7 +41,7 @@ namespace Library_APIs.Controllers
 
             var totalCount = await db.Books.CountAsync();
             var totalPages = (int)Math.Ceiling(totalCount / (double)limit);
-            var pagedBooks = await books.Skip((page -1) * limit) .Take
+            var pagedBooks = await books.Include(b => b.Category).Skip((page -1) * limit) .Take
                 (limit).ToListAsync();
 
             var pagedBookData = new PagedBookResult
@@ -106,6 +107,7 @@ namespace Library_APIs.Controllers
         
 
         [HttpPost("CreateBook")]
+        [Authorize(Roles = "Admin")]
         public IActionResult CreateBook(BookWithCategoryDTO bookDTO)
         {
             var book = new Book();
@@ -168,6 +170,7 @@ namespace Library_APIs.Controllers
         }
 
         [HttpPost("UpdateBook/{id}")]
+        [Authorize(Roles = "Admin")]
         public IActionResult UpdateBook(Guid id, BookWithCategoryDTO bookDTO)
         {
             var book = db.Books.Include(b=>b.Category).FirstOrDefault(b=>b.Id == id);
@@ -214,6 +217,7 @@ namespace Library_APIs.Controllers
         }
 
         [HttpDelete("DeleteBook/{id}")]
+        [Authorize(Roles = "Admin")]
         public IActionResult DeleteBook (Guid id)
         {
             var book = db.Books.Find(id);
