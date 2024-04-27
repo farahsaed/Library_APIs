@@ -27,7 +27,7 @@ builder.Services.AddDbContext<LibraryContext>(
     options => options.UseSqlServer(
           builder.Configuration.GetConnectionString("myConnection")
         )
-    );
+);
 builder.Services.AddIdentity<ApplicationUser,IdentityRole>().AddRoles<IdentityRole>().AddEntityFrameworkStores<LibraryContext>();
 
 builder.Services.AddAuthentication(options =>
@@ -51,6 +51,12 @@ builder.Services.AddAuthentication(options =>
             };
 
         });
+
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options => 
+    options.IdleTimeout = TimeSpan.FromMinutes(180)
+    );
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -61,6 +67,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseSession();
 
 app.UseAuthentication();
 
