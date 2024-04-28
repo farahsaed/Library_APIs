@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 //using Microsoft.AspNetCore.Identity;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace Library_APIs.Controllers
 {
@@ -19,12 +21,18 @@ namespace Library_APIs.Controllers
         private readonly LibraryContext db;
         private readonly IWebHostEnvironment _environment;
         private readonly Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> userManager;
+        private readonly IHttpContextAccessor httpContext;
+        private static List<string> bookList = new List<string>();
 
-        public BooksController(LibraryContext _db, IWebHostEnvironment environment, UserManager<ApplicationUser> userManager)
+        public BooksController(LibraryContext _db, 
+                                IWebHostEnvironment environment, 
+                                UserManager<ApplicationUser> userManager,
+                                IHttpContextAccessor httpContext)
         {
             db = _db;
             this._environment = environment;
             this.userManager = userManager;
+            this.httpContext = httpContext;
         }
 
         [HttpGet("GetAllBooks")]
@@ -58,6 +66,9 @@ namespace Library_APIs.Controllers
         public IActionResult GetSearchedBook(string term) 
         {
             IQueryable<Book> books;
+            //var bookList = new List<string>();
+            var termSession="";
+            var result = "";
             if (string.IsNullOrWhiteSpace(term))
                 books = db.Books;
             else
@@ -66,14 +77,35 @@ namespace Library_APIs.Controllers
                 books = db.Books
                         .Where(b => b.Title.ToLower().Contains(term)
                         );
+                bookList.Add(term);
+                termSession = JsonConvert.SerializeObject(bookList);
+                httpContext.HttpContext.Session.SetString("BookList",termSession);
+               
             }
+
             if (books.Any())
                 return Ok(books);
 
             else
-                return NotFound("No books matches the search term");
+                return NotFound("No books matches the search term " );
 
         }
+
+        [HttpGet("SearchHistory")]
+        public IActionResult GetSearchHistory()
+        {
+            List<string> bookList = new List<string>();
+
+            string bookSession = httpContext.HttpContext.Session.GetString("BookList");
+            if(!string.IsNullOrWhiteSpace(bookSession))
+                bookList = JsonConvert.DeserializeObject<List<string>>(bookSession);
+
+            if(bookList.Any())
+                return Ok(bookList);
+
+            return Ok();
+        }
+        
 
         [HttpPost("CreateBook")]
         [Authorize(Roles = "Admin")]
