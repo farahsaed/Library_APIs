@@ -19,12 +19,14 @@ namespace Library_APIs.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly LibraryContext _context;
         private readonly IConfiguration _configuration;
-        public UserController(UserManager<ApplicationUser> userManager , LibraryContext context ,IConfiguration configuration)
+        private readonly IHttpContextAccessor httpContext;
+        public UserController(UserManager<ApplicationUser> userManager , LibraryContext context ,IConfiguration configuration,IHttpContextAccessor httpContext)
 
         {
             this._userManager = userManager;
             this._context = context;
             this._configuration = configuration;
+            this.httpContext = httpContext;
         }
         [HttpPost("Register")]
         public async Task<IActionResult> register(UserDataDTO registerDTO)
@@ -78,6 +80,8 @@ namespace Library_APIs.Controllers
                               expires: DateTime.Now.AddHours(3),
                               signingCredentials:signingCredentials 
                             );
+
+
                         return Ok(new {
                             message = "Logged in successfully",
                             token = new JwtSecurityTokenHandler().WriteToken(token),

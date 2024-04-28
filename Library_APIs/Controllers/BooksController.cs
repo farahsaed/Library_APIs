@@ -1,15 +1,10 @@
 ﻿using Library_APIs.Data;
 using Library_APIs.DTO;
 using Library_APIs.Models;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-//using Microsoft.AspNetCore.Identity;
-using System.Runtime.InteropServices;
-using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace Library_APIs.Controllers
@@ -20,7 +15,7 @@ namespace Library_APIs.Controllers
     {
         private readonly LibraryContext db;
         private readonly IWebHostEnvironment _environment;
-        private readonly Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> userManager;
+        private readonly UserManager<ApplicationUser> userManager;
         private readonly IHttpContextAccessor httpContext;
         private static List<string> bookList = new List<string>();
 
@@ -63,8 +58,12 @@ namespace Library_APIs.Controllers
         }
 
         [HttpGet("SearchBook")]
-        public IActionResult GetSearchedBook(string term) 
+        public async Task<IActionResult> GetSearchedBookAsync(string term) 
         {
+            var userId = userManager.GetUserId(HttpContext.User);
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null) { return NotFound("User not found"); }
+
             IQueryable<Book> books;
             //var bookList = new List<string>();
             var termSession="";
@@ -78,8 +77,12 @@ namespace Library_APIs.Controllers
                         .Where(b => b.Title.ToLower().Contains(term)
                         );
                 bookList.Add(term);
-                termSession = JsonConvert.SerializeObject(bookList);
-                httpContext.HttpContext.Session.SetString("BookList",termSession);
+                httpContext.HttpContext.Session.SetString("UID",userId.ToString());
+                
+                    termSession = JsonConvert.SerializeObject(bookList);
+                    httpContext.HttpContext.Session.SetString("BookList", termSession);
+                
+                
                
             }
 
@@ -92,21 +95,29 @@ namespace Library_APIs.Controllers
         }
 
         [HttpGet("SearchHistory")]
-        public IActionResult GetSearchHistory()
+        public async Task<IActionResult> GetSearchHistory()
         {
-            List<string> bookList = new List<string>();
+            var userId = userManager.GetUserId(HttpContext.User);
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null) { return NotFound("User not found"); }
 
-            string bookSession = httpContext.HttpContext.Session.GetString("BookList");
-            if(!string.IsNullOrWhiteSpace(bookSession))
-                bookList = JsonConvert.DeserializeObject<List<string>>(bookSession);
+            var sessionUserID = httpContext.HttpContext.Session.GetString("UID");
+            if (sessionUserID == userId.ToString())
+            {
 
-            if(bookList.Any())
-                return Ok(bookList);
+                List<string> bookList = new List<string>();
+
+                string bookSession = httpContext.HttpContext.Session.GetString("BookList");
+                if (!string.IsNullOrWhiteSpace(bookSession))
+                    bookList = JsonConvert.DeserializeObject<List<string>>(bookSession);
+
+                if (bookList.Any())
+                    return Ok(bookList);
+            }
 
             return Ok();
         }
         
-
         [HttpPost("CreateBook")]
         [Authorize(Roles = "Admin")]
         public IActionResult CreateBook(BookWithCategoryDTO bookDTO)
